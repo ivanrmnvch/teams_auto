@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
-const config = require('../config/config.json');
+const scripts = require('./scripts');
+const Downloader = require("nodejs-file-downloader");
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -11,24 +12,29 @@ const config = require('../config/config.json');
     headless: false,
   });
 
+  await scripts.auth(browser);
+  const page = await scripts.openTeams(browser);
+  // await scripts.requestInterception(page);
+  // await scripts.getMenu(browser);
 
-  const loginPage = await browser.newPage();
-  await loginPage.goto('https://login.microsoftonline.com/', { waitUntil: 'networkidle0' });
+  console.log(1);
 
-  try {
-    await loginPage.type('#i0116', config.email);
-    await loginPage.click('[id=idSIButton9][value=Далее]');
-    await loginPage.type('#i0118', config.pass);
-    await loginPage.waitForSelector('[id=idSIButton9][value=Войти]');
-    await loginPage.click('[id=idSIButton9][value=Войти]');
-    await loginPage.waitForNavigation({ waitUntil: 'networkidle0' });
-    await loginPage.close();
-  } catch (e) {
-    console.log(e);
-  }
+  const client = await page.target().createCDPSession()
+  await client.send('Page.setDownloadBehavior', {
+    behavior: 'allow',
+    downloadPath: '/home/ivanrmnvch/homework/diss2/downloads',
+  })
 
-  const teamsPage = await browser.newPage();
-  await teamsPage.goto('https://teams.microsoft.com/')
+  page.evaluate((url) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('target', '_blank');
+    document.body.appendChild(link);
+    link.click();
+  }, 'https://ystu.sharepoint.com/sites/-45986/_layouts/15/download.aspx?UniqueId=22f9c6d2%2D778b%2D4450%2Dbbaf%2Dab887677da2b');
+
+
+  console.log(2);
 
   // await browser.close();
 })();
